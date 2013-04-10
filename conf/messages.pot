@@ -1,6 +1,0 @@
-
-msgid "this is the only change for this release."
-msgid_plural "released along with another change."
-msgstr[0] "this is the only change for this release."
-msgstr[1] "released along with another change."
-msgstr[2] "released along with %d changes."
