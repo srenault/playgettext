@@ -12,6 +12,6 @@ msgstr ""
 
 msgid "this is the only change for this release."
 msgid_plural "released along with {0} changes"
-msgstr[0] "C'est le seul changement pour cette livraison"
+msgstr[0] "C'est le seul changement pour cette livraison!"
 msgstr[1] "Livré avec un autre changement."
 msgstr[2] "Livré avec {0} changements."
