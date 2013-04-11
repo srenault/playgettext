@@ -1,14 +1,3 @@
-@()
-<h2>French</h2>
-<p>@I18n.fr.tr("this is the only change for this release.")</p>
-<p>@I18n.fr.trn("this is the only change for this release.", "released along with {0} changes.", 0, 0)</p>
-<p>@I18n.fr.trn("this is the only change for this release.", "released along with {0} changes.", 1, 1)</p>
-<p>@I18n.fr.trn("this is the only change for this release.", "released along with {0} changes.", 2, 2)</p>
-<p>@I18n.fr.trn("this is the only change for this release.", "released along with {0} changes.", 3, 3)</p>
+@()(implicit lang: Lang)
 
-<h2>English</h2>
-<p>@I18n.en.tr("this is the only change for this release.")</p>
-<p>@I18n.en.trn("this is the only change for this release.", "released along with {0} changes.", 0, 0)</p>
-<p>@I18n.en.trn("this is the only change for this release.", "released along with {0} changes.", 1, 1)</p>
-<p>@I18n.en.trn("this is the only change for this release.", "released along with {0} changes.", 2, 2)</p>
-<p>@I18n.en.trn("this is the only change for this release.", "released along with {0} changes.", 3, 3)</p>
+<p>@POMessages("this is the only change for this release")</p>
