@@ -19,11 +19,9 @@ class MessagesParser(messageInput: scalax.io.Input, messageSourceName: String) e
     }
   }
 
-  def end = namedError("""\s*""".r, "End of file expected")
-
   def newLine = namedError((("\r"?) ~> "\n"), "End of line expected")
 
-  def blankLine = opt(whiteSpace) ~> newLine ^^ { case _ => Comment("") }
+  def blankLine = """[(\s)|(\n)]+""".r ^^ { case _ => Comment("") }
 
   def header = """".[^"]+"""".r ^^ { case _ => Comment("") }
 
@@ -41,9 +39,9 @@ class MessagesParser(messageInput: scalax.io.Input, messageSourceName: String) e
     }
   }
 
-  def sentence = (header | comment | positioned(message))
+  def sentence = (header | comment | positioned(message)) <~ newLine
 
-  def parser = phrase((sentence | newLine)*) ^^ {
+  def parser = phrase((sentence | blankLine)*) ^^ {
     case messages => messages.collect {
       case m @ Message(_, _, _, _) => m
     }
