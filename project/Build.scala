@@ -8,7 +8,7 @@ object ApplicationBuild extends Build {
   val appVersion      = "1.0-SNAPSHOT"
 
   val appDependencies = Seq(
-    "com.ibm.icu" % "icu4j" % "4.0.1"
+//    "com.ibm.icu" % "icu4j" % "4.0.1"
   )
 
   // Tasks
