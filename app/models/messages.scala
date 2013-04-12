@@ -4,7 +4,10 @@ import scala.util.parsing.input._
 import scala.util.parsing.input.Positional
 import scala.util.parsing.combinator._
 import scala.util.matching._
- import play.api.i18n.Lang
+import play.api.i18n.Lang
+import scala.collection.JavaConverters._
+import scalax.io.JavaConverters._
+import scalax.file._
 
 object POMessages {
 
@@ -13,17 +16,13 @@ object POMessages {
 
   lazy val messages = Plugin.messages
 
-  def apply(key: String, args: Any*)(implicit lang: Lang): String = {
+  def apply(key: String, args: Tuple2[String, Any]*)(implicit lang: Lang): String = {
     Plugin.api.translate(key, args) getOrElse key
   }
 
   // Load messages
 
   object Plugin {
-
-    import scala.collection.JavaConverters._
-    import scalax.file._
-    import scalax.io.JavaConverters._
 
     private def loadMessages(file: String): Map[String, String] = {
       play.api.Play.current.classloader.getResources(file).asScala.toList.reverse.map { messageFile =>
@@ -49,13 +48,20 @@ object POMessages {
   case class MessagesApi(messages: Map[String, Map[String, String]]) {
     import com.ibm.icu.text.MessageFormat
 
-    def translate(key: String, args: Seq[Any])(implicit lang: Lang): Option[String] = {
+    def translate(key: String, args: Seq[(String, Any)])(implicit lang: Lang): Option[String] = {
       val langsToTry: List[Lang] = List(lang, Lang(lang.language, ""), Lang("default", ""))
       val pattern: Option[String] = langsToTry.foldLeft[Option[String]](None) { (res, lang) =>
         res.orElse(messages.get(lang.code).flatMap(_.get(key)))
       }
       pattern.map { pattern =>
-        new MessageFormat(pattern, lang.toLocale).format(args.map(_.asInstanceOf[java.lang.Object]).toArray)
+        val a = args.map { case (key, value) =>
+            key -> value.asInstanceOf[java.lang.Object]
+        }.toMap.asJava
+        //val a = args.map(_.asInstanceOf[java.lang.Object]).toArray
+        println(a)
+        val fixedPattern = pattern.replace("{", """\"{""").replace("}", """}\"""")
+        println(fixedPattern)
+        new MessageFormat(fixedPattern, lang.toLocale).format(a)
       }
     }
   }
