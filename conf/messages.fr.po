@@ -17,3 +17,9 @@ msgstr "C''est le seul changement pour cette livraison \"{pseudo}\" !"
 
 msgid "disk"
 msgstr "{num_files, plural, zero{There are no files on disk {disk_name}.}one{There is one file on disk {disk_name}.}other{There are # files on disk {disk_name}.}}"
+
+msgid "gender"
+msgstr "{0} est {1, select, female {une femme} other {est un homme}} travaillant à Paris."
+
+msgid "number"
+msgstr "Le nombre est {0}."

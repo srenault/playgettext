@@ -19,6 +19,19 @@ object POMessages {
   lazy val messages = Plugin.messages
 
   def apply(key: String, args: Tuple2[String, Any]*)(implicit lang: Lang): String = {
+    val javaArgs: Map[String, Any] = args.map {
+      case (key, value) => key -> value.asInstanceOf[java.lang.Object]
+    }.toMap
+    Plugin.api.translate(key, javaArgs) getOrElse key
+  }
+
+  def apply(key: String, first: String, others: Any*)(implicit lang: Lang): String = {
+    val args = (first +: others).map(_.asInstanceOf[java.lang.Object]).toList
+    Plugin.api.translate(key, args) getOrElse key
+  }
+
+  def apply[A : Numeric](key: String, first: A, others: Any*)(implicit lang: Lang): String = {
+    val args = (first +: others).map(_.asInstanceOf[java.lang.Object]).toList
     Plugin.api.translate(key, args) getOrElse key
   }
 
@@ -50,18 +63,26 @@ object POMessages {
   case class MessagesApi(messages: Map[String, Map[String, String]]) {
     import com.ibm.icu.text.MessageFormat
 
-    def translate(key: String, args: Seq[(String, Any)])(implicit lang: Lang): Option[String] = {
+    def translate(key: String, args: List[Any])(implicit lang: Lang): Option[String] = {
       val langsToTry: List[Lang] = List(lang, Lang(lang.language, ""), Lang("default", ""))
       val pattern: Option[String] = langsToTry.foldLeft[Option[String]](None) { (res, lang) =>
         res.orElse(messages.get(lang.code).flatMap(_.get(key)))
       }
       pattern.map { pattern =>
-        val javaArgs = args.map { case (key, value) =>
-            key -> value.asInstanceOf[java.lang.Object]
-        }.toMap.asJava
-
         val cleanedPattern = pattern.replace("""\"""","\"")
-        new MessageFormat(cleanedPattern, lang.toLocale).format(javaArgs)
+        new MessageFormat(cleanedPattern, lang.toLocale).format(args.toArray)
+      }
+    }
+
+    def translate(key: String, args: Map[String, Any])(implicit lang: Lang): Option[String] = {
+      val langsToTry: List[Lang] = List(lang, Lang(lang.language, ""), Lang("default", ""))
+      val pattern: Option[String] = langsToTry.foldLeft[Option[String]](None) { (res, lang) =>
+        res.orElse(messages.get(lang.code).flatMap(_.get(key)))
+      }
+
+      pattern.map { pattern =>
+        val cleanedPattern = pattern.replace("""\"""","\"")
+        new MessageFormat(cleanedPattern, lang.toLocale).format(args.asJava)
       }
     }
   }

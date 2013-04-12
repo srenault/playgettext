@@ -15,3 +15,9 @@ msgstr "this is the only change for this release"
 
 msgid "disk"
 msgstr "{num_files, plural,=0{There are no files on disk \"{disk_name}\".}=1{There is one file on disk \"{disk_name}\".}other{There are # files on disk \"{disk_name}\".}}"
+
+msgid "gender"
+msgstr "{0} est {1, select, female {a woman} other {est man}} working at Paris."
+
+msgid "number"
+msgstr "The number is {number}."
