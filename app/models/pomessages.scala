@@ -63,26 +63,23 @@ object POMessages {
   case class MessagesApi(messages: Map[String, Map[String, String]]) {
     import com.ibm.icu.text.MessageFormat
 
-    def translate(key: String, args: List[Any])(implicit lang: Lang): Option[String] = {
+    def pattern(key: String)(implicit lang: Lang) = {
       val langsToTry: List[Lang] = List(lang, Lang(lang.language, ""), Lang("default", ""))
       val pattern: Option[String] = langsToTry.foldLeft[Option[String]](None) { (res, lang) =>
         res.orElse(messages.get(lang.code).flatMap(_.get(key)))
       }
-      pattern.map { pattern =>
-        val cleanedPattern = pattern.replace("""\"""","\"")
-        new MessageFormat(cleanedPattern, lang.toLocale).format(args.toArray)
+      pattern.map(_.replace("""\"""","\""))
+    }
+
+    def translate(key: String, args: List[Any])(implicit lang: Lang): Option[String] = {
+      pattern(key).map { p =>
+        new MessageFormat(p, lang.toLocale).format(args.toArray)
       }
     }
 
     def translate(key: String, args: Map[String, Any])(implicit lang: Lang): Option[String] = {
-      val langsToTry: List[Lang] = List(lang, Lang(lang.language, ""), Lang("default", ""))
-      val pattern: Option[String] = langsToTry.foldLeft[Option[String]](None) { (res, lang) =>
-        res.orElse(messages.get(lang.code).flatMap(_.get(key)))
-      }
-
-      pattern.map { pattern =>
-        val cleanedPattern = pattern.replace("""\"""","\"")
-        new MessageFormat(cleanedPattern, lang.toLocale).format(args.asJava)
+      pattern(key).map { p =>
+        new MessageFormat(p, lang.toLocale).format(args.asJava)
       }
     }
   }
