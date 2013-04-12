@@ -11,8 +11,11 @@ import scalax.file._
 
 object POMessages {
 
-  case class Message(key: String, pattern: String, input: scalax.io.Input, sourceName: String) extends Positional
-  case class Comment(msg: String)
+  trait Parsed
+  case class Message(key: String, pattern: String, input: scalax.io.Input, sourceName: String) extends Positional with Parsed
+  case class Comment(msg: String) extends Parsed
+  case class PluralFormula(count: Int, formula: String) extends Parsed
+  object Ignore extends Parsed
 
   lazy val messages = Plugin.messages
 
@@ -54,14 +57,10 @@ object POMessages {
         res.orElse(messages.get(lang.code).flatMap(_.get(key)))
       }
       pattern.map { pattern =>
-        val a = args.map { case (key, value) =>
+        val javaArgs = args.map { case (key, value) =>
             key -> value.asInstanceOf[java.lang.Object]
         }.toMap.asJava
-        //val a = args.map(_.asInstanceOf[java.lang.Object]).toArray
-        println(a)
-        val fixedPattern = pattern.replace("{", """\"{""").replace("}", """}\"""")
-        println(fixedPattern)
-        new MessageFormat(fixedPattern, lang.toLocale).format(a)
+        new MessageFormat(pattern, lang.toLocale).format(javaArgs)
       }
     }
   }
@@ -71,28 +70,36 @@ object POMessages {
   class MessagesParser(messageInput: scalax.io.Input, messageSourceName: String) extends RegexParsers {
     override def skipWhitespace = false
 
-    def namedError[A](p: Parser[A], msg: String) = Parser[A] { i =>
-      p(i) match {
-        case Failure(_, in) => Failure(msg, in)
-        case o => o
+    def newLine = ("\r"?) ~> "\n"
+
+    def blankLine = """[(\s)|(\n)]+""".r ^^ { case _ => Ignore }
+
+    def firstTwoLines = """msgid\s""\nmsgstr\s""""".r ^^ { case _ => Ignore }
+
+    def header = """".[^"]+"""".r ^^ { case _ => Ignore }
+
+    def formula = """.[^;]+""".r
+
+    def endFormula = """.[^"]+""".r
+
+    def pluralFormula = """"Plural-Forms:""" ~ whiteSpace ~ "nplurals=" ~ number ~ semicolon ~ whiteSpace ~ "plural=" ~ formula ~ semicolon ~ endFormula ~ quote ^^ {
+      case (_ ~ _ ~ _ ~ nb ~ _ ~ _ ~ _ ~ f ~ _ ~ _ ~ _) => {
+        println(nb, f)
+        PluralFormula(nb.toInt, f)
       }
     }
 
-    def newLine = namedError((("\r"?) ~> "\n"), "End of line expected")
-
-    def blankLine = """[(\s)|(\n)]+""".r ^^ { case _ => Comment("") }
-
-    def firstTwoLines = """msgid\s""\nmsgstr\s""""".r ^^ { case _ => Comment("") }
-
-    def header = """".[^"]+"""".r ^^ { case _ => Comment("") }
+    def semicolon = ";"
 
     def comment = """#.*""".r ^^ { case s => Comment(s) }
 
-    def quote = namedError("\"", "Quote expected")
+    def number = """\d""".r
 
-    def msgId = namedError("""(.[^"]+)""".r, "msgid expected")
+    def quote = "\""
 
-    def msgPattern = namedError("""(.[^"]+)""".r, "Message pattern expected")
+    def msgId = """(.[^"]+)""".r
+
+    def msgPattern = """(.[^"]+)""".r
 
     def message = "msgid" ~ whiteSpace ~ quote ~ msgId ~ quote ~ newLine ~ "msgstr" ~ whiteSpace ~ quote ~ msgPattern ~ quote ^^ {
       case (_ ~ _ ~ _ ~ key ~ _ ~ _ ~ _ ~ _ ~ _ ~ value ~ _) => {
@@ -100,7 +107,7 @@ object POMessages {
       }
     }
 
-    def sentence = (firstTwoLines | header | comment | positioned(message)) <~ newLine
+    def sentence = (firstTwoLines | pluralFormula | header | comment | positioned(message)) <~ newLine
 
     def parser = phrase((sentence | blankLine)*) ^^ {
       case messages => messages.collect {
