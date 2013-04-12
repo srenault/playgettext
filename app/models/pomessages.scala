@@ -11,11 +11,10 @@ import scalax.file._
 
 object POMessages {
 
-  trait Parsed
-  case class Message(key: String, pattern: String, input: scalax.io.Input, sourceName: String) extends Positional with Parsed
-  case class Comment(msg: String) extends Parsed
-  case class PluralFormula(count: Int, formula: String) extends Parsed
-  object Ignore extends Parsed
+  case class Message(key: String, pattern: String, input: scalax.io.Input, sourceName: String) extends Positional
+  case class Comment(msg: String)
+  case class PluralFormula(count: Int, formula: String)
+  object Ignore
 
   lazy val messages = Plugin.messages
 
@@ -60,7 +59,9 @@ object POMessages {
         val javaArgs = args.map { case (key, value) =>
             key -> value.asInstanceOf[java.lang.Object]
         }.toMap.asJava
-        new MessageFormat(pattern, lang.toLocale).format(javaArgs)
+
+        val cleanedPattern = pattern.replace("""\"""","\"")
+        new MessageFormat(cleanedPattern, lang.toLocale).format(javaArgs)
       }
     }
   }
@@ -78,17 +79,6 @@ object POMessages {
 
     def header = """".[^"]+"""".r ^^ { case _ => Ignore }
 
-    def formula = """.[^;]+""".r
-
-    def endFormula = """.[^"]+""".r
-
-    def pluralFormula = """"Plural-Forms:""" ~ whiteSpace ~ "nplurals=" ~ number ~ semicolon ~ whiteSpace ~ "plural=" ~ formula ~ semicolon ~ endFormula ~ quote ^^ {
-      case (_ ~ _ ~ _ ~ nb ~ _ ~ _ ~ _ ~ f ~ _ ~ _ ~ _) => {
-        println(nb, f)
-        PluralFormula(nb.toInt, f)
-      }
-    }
-
     def semicolon = ";"
 
     def comment = """#.*""".r ^^ { case s => Comment(s) }
@@ -97,17 +87,15 @@ object POMessages {
 
     def quote = "\""
 
-    def msgId = """(.[^"]+)""".r
+    def text = """(\\"|[^"])*""".r
 
-    def msgPattern = """(.[^"]+)""".r
-
-    def message = "msgid" ~ whiteSpace ~ quote ~ msgId ~ quote ~ newLine ~ "msgstr" ~ whiteSpace ~ quote ~ msgPattern ~ quote ^^ {
+    def message = "msgid" ~ whiteSpace ~ quote ~ text ~ quote ~ newLine ~ "msgstr" ~ whiteSpace ~ quote ~ text ~ quote ^^ {
       case (_ ~ _ ~ _ ~ key ~ _ ~ _ ~ _ ~ _ ~ _ ~ value ~ _) => {
         Message(key, value, messageInput, messageSourceName)
       }
     }
 
-    def sentence = (firstTwoLines | pluralFormula | header | comment | positioned(message)) <~ newLine
+    def sentence = (firstTwoLines | header | comment | positioned(message)) <~ newLine
 
     def parser = phrase((sentence | blankLine)*) ^^ {
       case messages => messages.collect {
